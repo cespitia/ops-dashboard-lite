@@ -102,7 +102,7 @@ docker run \
   -p 1434:1433 \
   --name odl-sqlserver \
   -d mcr.microsoft.com/mssql/server:2022-latest
-
+```
 ---
 
 ## Screenshots
