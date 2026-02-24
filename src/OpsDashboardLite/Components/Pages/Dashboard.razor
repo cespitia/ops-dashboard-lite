@@ -1,0 +1,122 @@
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@using OpsDashboardLite.Data
+@using OpsDashboardLite.Models
+@using OpsDashboardLite.Services
+@inject OpsDbContext Db
+@inject CheckRunner Runner
+
+<PageTitle>Ops Dashboard</PageTitle>
+
+<h1 class="page-title">Ops Dashboard</h1>
+<p class="page-subtitle">Service health summary and last check timestamps.</p>
+
+<div class="toolbar">
+    <button class="btn btn-primary" @onclick="RunAllChecks" disabled="@_busy">Run All Checks</button>
+    <a class="btn btn-outline" href="/events">View Event Log</a>
+</div>
+
+@if (_loading)
+{
+    <p class="muted">Loading services...</p>
+}
+else
+{
+    <div class="card">
+        <div class="table-head">
+            <div>Service</div>
+            <div>Status</div>
+            <div>Last Check (UTC)</div>
+            <div></div>
+        </div>
+
+        @foreach (var row in _rows)
+        {
+            <div class="table-row">
+                <div>
+                    <div class="strong">@row.Service.Name</div>
+                    <div class="muted small">@row.Service.EndpointUrl</div>
+                </div>
+
+                <div>
+                    <span class="badge @BadgeClass(row.Status?.State)">@DisplayState(row.Status?.State)</span>
+                    @if (!string.IsNullOrWhiteSpace(row.Status?.Message))
+                    {
+                        <div class="muted small">@row.Status!.Message</div>
+                    }
+                </div>
+
+                <div class="mono">
+                    @(row.Status == null ? "-" : row.Status.CheckedAtUtc.ToString("yyyy-MM-dd HH:mm:ss"))
+                </div>
+
+                <div class="end">
+                    <button class="btn btn-outline btn-sm" @onclick="() => RunOneCheck(row.Service.Id)" disabled="@_busy">
+                        Run Check
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _busy = false;
+
+    private List<Row> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+
+        var services = await Db.Services.AsNoTracking().OrderBy(s => s.Name).ToListAsync();
+
+        // Latest status per service
+        var latestStatuses = await Db.ServiceStatuses.AsNoTracking()
+            .GroupBy(s => s.MonitoredServiceId)
+            .Select(g => g.OrderByDescending(x => x.CheckedAtUtc).First())
+            .ToListAsync();
+
+        var statusByServiceId = latestStatuses.ToDictionary(s => s.MonitoredServiceId);
+
+        _rows = services
+            .Select(s => new Row(s, statusByServiceId.TryGetValue(s.Id, out var st) ? st : null))
+            .ToList();
+
+        _loading = false;
+    }
+
+    private async Task RunOneCheck(int serviceId)
+    {
+        _busy = true;
+        await Runner.RunCheckAsync(serviceId);
+        await LoadAsync();
+        _busy = false;
+    }
+
+    private async Task RunAllChecks()
+    {
+        _busy = true;
+        await Runner.RunAllAsync();
+        await LoadAsync();
+        _busy = false;
+    }
+
+    private static string DisplayState(string? state) => string.IsNullOrWhiteSpace(state) ? "Unknown" : state;
+
+    private static string BadgeClass(string? state) => state switch
+    {
+        "Healthy" => "badge-ok",
+        "Degraded" => "badge-warn",
+        "Unhealthy" => "badge-bad",
+        _ => "badge-neutral"
+    };
+
+    private record Row(MonitoredService Service, ServiceStatus? Status);
+}
