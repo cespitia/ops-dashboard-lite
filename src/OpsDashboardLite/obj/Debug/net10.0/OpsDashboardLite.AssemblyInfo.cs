@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OpsDashboardLite")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9668b29b6431ef01cf9e252e15f10f0454774797")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+26bf9a52439fcd7ede6754ceda8e48732b3ed04b")]
 [assembly: System.Reflection.AssemblyProductAttribute("OpsDashboardLite")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OpsDashboardLite")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

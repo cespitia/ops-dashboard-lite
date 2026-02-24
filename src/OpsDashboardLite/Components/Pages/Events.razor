@@ -1,0 +1,68 @@
+@page "/events"
+@using Microsoft.EntityFrameworkCore
+@using OpsDashboardLite.Data
+@using OpsDashboardLite.Models
+@inject OpsDbContext Db
+
+<PageTitle>Event Log</PageTitle>
+
+<h1 class="page-title">Event Log</h1>
+<p class="page-subtitle">Recent operational events stored in SQL Server.</p>
+
+<div class="toolbar">
+    <a class="btn btn-outline" href="/">Back to Dashboard</a>
+</div>
+
+@if (_loading)
+{
+    <p class="muted">Loading events...</p>
+}
+else if (_events.Count == 0)
+{
+    <p class="muted">No events yet. Run checks from the dashboard to generate events.</p>
+}
+else
+{
+    <div class="card">
+        <div class="table-head">
+            <div>Time (UTC)</div>
+            <div>Service</div>
+            <div>Severity</div>
+            <div>Message</div>
+        </div>
+
+        @foreach (var evt in _events)
+        {
+            <div class="table-row">
+                <div class="mono">@evt.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                <div class="strong">@evt.MonitoredService?.Name</div>
+                <div><span class="badge @SeverityClass(evt.Severity)">@evt.Severity</span></div>
+                <div>@evt.Message</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private List<OpsDashboardLite.Models.EventLog> _events = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _events = await Db.EventLogs
+            .AsNoTracking()
+            .Include(e => e.MonitoredService)
+            .OrderByDescending(e => e.CreatedAtUtc)
+            .Take(50)
+            .ToListAsync();
+
+        _loading = false;
+    }
+
+    private static string SeverityClass(string? sev) => sev switch
+    {
+        "Error" => "badge-bad",
+        "Warning" => "badge-warn",
+        _ => "badge-neutral"
+    };
+}

@@ -1,5 +1,6 @@
 using OpsDashboardLite.Components;
 using OpsDashboardLite.Data;
+using OpsDashboardLite.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +11,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<OpsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    
+
+builder.Services.AddScoped<CheckRunner>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -28,5 +31,11 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OpsDbContext>();
+    await DbSeeder.SeedAsync(db);
+}
 
 app.Run();
