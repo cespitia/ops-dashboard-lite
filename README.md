@@ -110,7 +110,7 @@ docker run \
 ![Dashboard Overview](docs/screenshots/dashboard-overview.png)
 
 ### Dashboard Run Check
-![Dashboard Run Check](docs/screenshots/dashboard-run-check.png
+![Dashboard Run Check](docs/screenshots/dashboard-run-check.png)
 
 ### Event Log
 ![Event Log](docs/screenshots/event-log.png)
